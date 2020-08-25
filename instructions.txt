@@ -9,6 +9,7 @@ The swarm init is done manually.  ssh into the new ec2 and run
 Create a worker server. The SecurityGroup ID for the security group created in the last step must be passed as a parameter
  aws cloudformation create-stack --stack-name nginxworker --template-body file://nginxworkercf.yml --parameters ParameterKey=VPCId,ParameterValue=vpc-8d52b1e6 ParameterKey=PublicSubnet,ParameterValue=subnet-ae5111d4 ParameterKey=PrescriptiveSecurityGroup,ParameterValue=sg-0f054e2fff4820f2b
 
+When the new EC2 is finished nginx should already be running. You can hit the public DNS in a browser to see the static file.
 You can create as many as you want, as long as the stack-name is different each time.
 
 Each new node is added to the swarm manually.  ssh into each and join the swarm with the token from step 2
