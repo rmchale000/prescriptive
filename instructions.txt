@@ -1,0 +1,31 @@
+Create the load balancer server first.  A VPC, subnet, and key pair for ssh must already be created.
+I have the key pair set as a default in the template, but it can also be passed as another parameter.
+Here's an example with my parameters
+ aws cloudformation create-stack --stack-name nginxbalancer --template-body file://nginxbalancercf.yml --parameters ParameterKey=VPCId,ParameterValue=vpc-8d52b1e6 ParameterKey=PublicSubnet,ParameterValue=subnet-ae5111d4
+
+The swarm init is done manually.  ssh into the new ec2 and run
+ sudo docker swarm init
+
+Create a worker server. The SecurityGroup ID for the security group created in the last step must be passed as a parameter
+ aws cloudformation create-stack --stack-name nginxworker --template-body file://nginxworkercf.yml --parameters ParameterKey=VPCId,ParameterValue=vpc-8d52b1e6 ParameterKey=PublicSubnet,ParameterValue=subnet-ae5111d4 ParameterKey=PrescriptiveSecurityGroup,ParameterValue=sg-0f054e2fff4820f2b
+
+You can create as many as you want, as long as the stack-name is different each time.
+
+Each new node is added to the swarm manually.  ssh into each and join the swarm with the token from step 2
+ sudo docker swarm join --token <token>
+
+On the load balancer, the ip addresses of the new servers must be added.
+ vi ~/prescriptive/files/nginx.conf, then replace the ip addresses in the "upstream loadbalance" block with the new ones
+ 
+Then reload the nginx server with this command
+ sudo docker exec <containerid> nginx -s reload
+
+The static file on all the worker nodes are updated with a python script. The script uses the scp command, so the pem key from your key pair must be placed on the load balancer server, in the ~/ folder.
+Once the pem key is there, run the python script,
+ cd prescriptive/scripts
+ python3 update_ips.py
+
+Everything should be working. Hitting the load balancer with a browser should give the html page with the list of ips.
+
+The process is not 100% automated, so it doesn't work entirely on the fly.  Each time a new worker node is added, the new ip must be added to the nginx.conf file, the nginx reload command must be run, and the python script has to be run again.
+ 
